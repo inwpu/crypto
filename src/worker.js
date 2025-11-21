@@ -1,64 +1,43 @@
 // Cloudflare Worker for Crypto Visualizer
+import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
+
 export default {
     async fetch(request, env, ctx) {
-        const url = new URL(request.url);
-        let path = url.pathname;
-
-        // Default to index.html
-        if (path === '/' || path === '') {
-            path = '/index.html';
-        }
-
-        // Get the asset from KV or serve from static files
         try {
-            // For Workers Sites, assets are served from __STATIC_CONTENT
-            const asset = await env.__STATIC_CONTENT.get(path.slice(1));
-
-            if (asset) {
-                const contentType = getContentType(path);
-                return new Response(asset, {
-                    headers: {
-                        'Content-Type': contentType,
-                        'Cache-Control': 'public, max-age=3600',
-                    },
-                });
-            }
-
-            // 404 for not found
-            return new Response('Not Found', { status: 404 });
+            // Use the official asset handler for Workers Sites
+            return await getAssetFromKV(
+                {
+                    request,
+                    waitUntil: ctx.waitUntil.bind(ctx),
+                },
+                {
+                    ASSET_NAMESPACE: env.__STATIC_CONTENT,
+                    ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+                }
+            );
         } catch (e) {
-            // Fallback: serve index.html for SPA routing
-            if (path !== '/index.html') {
-                const index = await env.__STATIC_CONTENT.get('index.html');
-                if (index) {
-                    return new Response(index, {
-                        headers: {
-                            'Content-Type': 'text/html; charset=utf-8',
+            // If not found, try to serve index.html for SPA routing
+            if (e.status === 404) {
+                try {
+                    const notFoundResponse = await getAssetFromKV(
+                        {
+                            request: new Request(new URL('/index.html', request.url).toString(), request),
+                            waitUntil: ctx.waitUntil.bind(ctx),
                         },
+                        {
+                            ASSET_NAMESPACE: env.__STATIC_CONTENT,
+                            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+                        }
+                    );
+                    return new Response(notFoundResponse.body, {
+                        ...notFoundResponse,
+                        status: 200,
                     });
+                } catch (e) {
+                    return new Response('Not Found', { status: 404 });
                 }
             }
-
             return new Response('Internal Error: ' + e.message, { status: 500 });
         }
     },
 };
-
-function getContentType(path) {
-    const ext = path.split('.').pop().toLowerCase();
-    const types = {
-        'html': 'text/html; charset=utf-8',
-        'css': 'text/css; charset=utf-8',
-        'js': 'application/javascript; charset=utf-8',
-        'json': 'application/json',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-        'svg': 'image/svg+xml',
-        'ico': 'image/x-icon',
-        'woff': 'font/woff',
-        'woff2': 'font/woff2',
-    };
-    return types[ext] || 'text/plain';
-}
