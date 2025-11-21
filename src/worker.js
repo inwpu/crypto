@@ -1,5 +1,8 @@
 // Cloudflare Worker for Crypto Visualizer
 import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
+import manifestJSON from '__STATIC_CONTENT_MANIFEST';
+
+const assetManifest = JSON.parse(manifestJSON);
 
 export default {
     async fetch(request, env, ctx) {
@@ -12,7 +15,7 @@ export default {
                 },
                 {
                     ASSET_NAMESPACE: env.__STATIC_CONTENT,
-                    ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+                    ASSET_MANIFEST: assetManifest,
                 }
             );
         } catch (e) {
@@ -26,7 +29,7 @@ export default {
                         },
                         {
                             ASSET_NAMESPACE: env.__STATIC_CONTENT,
-                            ASSET_MANIFEST: env.__STATIC_CONTENT_MANIFEST,
+                            ASSET_MANIFEST: assetManifest,
                         }
                     );
                     return new Response(notFoundResponse.body, {
