@@ -1,0 +1,14 @@
+name = "crypto"
+main = "src/worker.js"
+compatibility_date = "2025-11-21"
+workers_dev = false
+routes = [
+  "crypto.hxorz.cn/*",
+]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[site]
+bucket = "./src"
