@@ -905,7 +905,18 @@
             <div>👁 本页访问: <span id="busuanzi_value_page_pv" style="color: #00ff88;">-</span></div>
             <div>👤 访客数: <span id="busuanzi_value_site_uv" style="color: #00ff88;">-</span></div>
             <div>🌐 IP: <span id="visitorIP" style="color: #7b2fff;">获取中...</span></div>
-            <div>🔑 指纹: <span id="deviceFingerprint" style="color: #ff2f7b; font-family: monospace; font-size: 0.75rem;">计算中...</span></div>
+        </div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="color: #ff2f7b; font-weight: bold; margin-bottom: 8px; font-size: 0.85rem;">🔑 浏览器指纹</div>
+            <div style="display: grid; gap: 4px; font-size: 0.75rem; color: #aaa;">
+                <div>浏览器: <span id="fpBrowser" style="color: #fff;">-</span></div>
+                <div>系统: <span id="fpOS" style="color: #fff;">-</span></div>
+                <div>屏幕: <span id="fpScreen" style="color: #fff;">-</span></div>
+                <div>语言: <span id="fpLang" style="color: #fff;">-</span></div>
+                <div>时区: <span id="fpTimezone" style="color: #fff;">-</span></div>
+                <div>触控: <span id="fpTouch" style="color: #fff;">-</span></div>
+                <div>插件数: <span id="fpPlugins" style="color: #fff;">-</span></div>
+            </div>
         </div>
     </div>
 
@@ -947,108 +958,64 @@
 
         getVisitorIP();
 
-        // Generate browser fingerprint (more comprehensive)
-        async function generateBrowserFingerprint() {
-            const components = [];
-
-            // Canvas fingerprint
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = 200;
-                canvas.height = 50;
-                const ctx = canvas.getContext('2d');
-                ctx.textBaseline = 'alphabetic';
-                ctx.font = '14px Arial';
-                ctx.fillStyle = '#f60';
-                ctx.fillRect(125, 1, 62, 20);
-                ctx.fillStyle = '#069';
-                ctx.fillText('Cwm fjordbank glyphs vext quiz, 😃', 2, 15);
-                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-                ctx.fillText('Cwm fjordbank glyphs vext quiz, 😃', 4, 17);
-                components.push(canvas.toDataURL());
-            } catch (e) {
-                components.push('canvas-error');
+        // Display browser fingerprint details
+        function displayBrowserFingerprint() {
+            // Parse browser name and version
+            const ua = navigator.userAgent;
+            let browser = '未知';
+            if (ua.includes('Firefox/')) {
+                browser = 'Firefox ' + ua.split('Firefox/')[1].split(' ')[0];
+            } else if (ua.includes('Edg/')) {
+                browser = 'Edge ' + ua.split('Edg/')[1].split(' ')[0];
+            } else if (ua.includes('Chrome/')) {
+                browser = 'Chrome ' + ua.split('Chrome/')[1].split(' ')[0];
+            } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
+                browser = 'Safari ' + (ua.split('Version/')[1] || '').split(' ')[0];
             }
+            document.getElementById('fpBrowser').textContent = browser;
 
-            // WebGL fingerprint
-            try {
-                const canvas = document.createElement('canvas');
-                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-                if (gl) {
-                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-                    if (debugInfo) {
-                        components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL));
-                        components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL));
-                    }
-                }
-            } catch (e) {
-                components.push('webgl-error');
+            // Parse OS
+            let os = '未知';
+            if (ua.includes('Windows NT 10')) os = 'Windows 10/11';
+            else if (ua.includes('Windows NT 6.3')) os = 'Windows 8.1';
+            else if (ua.includes('Windows NT 6.1')) os = 'Windows 7';
+            else if (ua.includes('Mac OS X')) {
+                const ver = ua.match(/Mac OS X (\d+[._]\d+)/);
+                os = 'macOS ' + (ver ? ver[1].replace('_', '.') : '');
+            } else if (ua.includes('Linux')) os = 'Linux';
+            else if (ua.includes('Android')) {
+                const ver = ua.match(/Android (\d+\.?\d*)/);
+                os = 'Android ' + (ver ? ver[1] : '');
+            } else if (ua.includes('iPhone') || ua.includes('iPad')) {
+                const ver = ua.match(/OS (\d+_\d+)/);
+                os = 'iOS ' + (ver ? ver[1].replace('_', '.') : '');
             }
+            document.getElementById('fpOS').textContent = os;
 
-            // Audio fingerprint
-            try {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const analyser = audioContext.createAnalyser();
-                const gain = audioContext.createGain();
-                const processor = audioContext.createScriptProcessor(4096, 1, 1);
+            // Screen
+            document.getElementById('fpScreen').textContent =
+                `${screen.width}×${screen.height} @${window.devicePixelRatio || 1}x, ${screen.colorDepth}bit`;
 
-                gain.gain.value = 0;
-                oscillator.type = 'triangle';
-                oscillator.connect(analyser);
-                analyser.connect(processor);
-                processor.connect(gain);
-                gain.connect(audioContext.destination);
-                oscillator.start(0);
+            // Language
+            document.getElementById('fpLang').textContent = navigator.language;
 
-                components.push(audioContext.sampleRate.toString());
-                audioContext.close();
-            } catch (e) {
-                components.push('audio-error');
-            }
-
-            // Browser and system info
-            components.push(navigator.userAgent);
-            components.push(navigator.language);
-            components.push(navigator.languages ? navigator.languages.join(',') : '');
-            components.push(screen.width + 'x' + screen.height + 'x' + screen.colorDepth);
-            components.push(new Date().getTimezoneOffset().toString());
-            components.push(navigator.hardwareConcurrency ? navigator.hardwareConcurrency.toString() : '');
-            components.push(navigator.deviceMemory ? navigator.deviceMemory.toString() : '');
-            components.push(navigator.platform);
-            components.push(!!window.sessionStorage);
-            components.push(!!window.localStorage);
-            components.push(!!window.indexedDB);
-            components.push(navigator.cookieEnabled);
-            components.push(navigator.doNotTrack || '');
-
-            // Plugins
-            if (navigator.plugins) {
-                const plugins = [];
-                for (let i = 0; i < navigator.plugins.length; i++) {
-                    plugins.push(navigator.plugins[i].name);
-                }
-                components.push(plugins.join(','));
-            }
+            // Timezone
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const offset = -new Date().getTimezoneOffset() / 60;
+            document.getElementById('fpTimezone').textContent =
+                `${tz} (UTC${offset >= 0 ? '+' : ''}${offset})`;
 
             // Touch support
-            components.push(navigator.maxTouchPoints || 0);
+            const touchPoints = navigator.maxTouchPoints || 0;
+            document.getElementById('fpTouch').textContent =
+                touchPoints > 0 ? `支持 (${touchPoints}点)` : '不支持';
 
-            // Create hash
-            const fingerprint = components.join('|||');
-            let hash = 0;
-            for (let i = 0; i < fingerprint.length; i++) {
-                const char = fingerprint.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash;
-            }
-
-            return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
+            // Plugins count
+            document.getElementById('fpPlugins').textContent =
+                navigator.plugins ? navigator.plugins.length + ' 个' : '0 个';
         }
 
-        generateBrowserFingerprint().then(fp => {
-            document.getElementById('deviceFingerprint').textContent = fp;
-        });
+        displayBrowserFingerprint();
 
         // Auto hide after 10 seconds
         setTimeout(() => {
