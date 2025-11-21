@@ -879,5 +879,87 @@
     <script src="ciphers/rsa.js"></script>
     <script src="ciphers/base64.js"></script>
     <script src="ciphers/md5.js"></script>
+
+    <!-- Busuanzi stats -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+    <!-- Floating stats window -->
+    <div id="statsFloating" style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid rgba(0, 212, 255, 0.3);
+        border-radius: 12px;
+        padding: 15px 20px;
+        font-size: 0.85rem;
+        color: #e0e0e0;
+        z-index: 10000;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+        max-width: 280px;
+    ">
+        <div style="color: #00d4ff; font-weight: bold; margin-bottom: 10px; font-size: 0.9rem;">📊 访问统计</div>
+        <div style="display: grid; gap: 6px; font-size: 0.8rem;">
+            <div>👁 本页访问: <span id="busuanzi_value_page_pv" style="color: #00ff88;">-</span></div>
+            <div>👤 访客数: <span id="busuanzi_value_site_uv" style="color: #00ff88;">-</span></div>
+            <div>🌐 IP: <span id="visitorIP" style="color: #7b2fff;">获取中...</span></div>
+            <div>🔑 指纹: <span id="deviceFingerprint" style="color: #ff2f7b; font-family: monospace; font-size: 0.75rem;">计算中...</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Get visitor IP
+        fetch('https://api.ipify.org?format=json')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('visitorIP').textContent = data.ip;
+            })
+            .catch(() => {
+                document.getElementById('visitorIP').textContent = '未知';
+            });
+
+        // Generate device fingerprint
+        function generateFingerprint() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('fingerprint', 2, 2);
+            const canvasData = canvas.toDataURL();
+
+            const fingerprint = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                new Date().getTimezoneOffset(),
+                navigator.hardwareConcurrency || 'unknown',
+                canvasData.slice(-50)
+            ].join('|');
+
+            // Simple hash
+            let hash = 0;
+            for (let i = 0; i < fingerprint.length; i++) {
+                const char = fingerprint.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(16).padStart(8, '0').toUpperCase();
+        }
+
+        document.getElementById('deviceFingerprint').textContent = generateFingerprint();
+
+        // Auto hide after 10 seconds
+        setTimeout(() => {
+            const statsBox = document.getElementById('statsFloating');
+            statsBox.style.opacity = '0';
+            statsBox.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                statsBox.style.display = 'none';
+            }, 500);
+        }, 10000);
+    </script>
 </body>
 </html>
